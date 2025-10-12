@@ -63,6 +63,28 @@ def test_mean():
     m.backward()
     assert np.allclose(x.grad, [1/3, 1/3, 1/3])
 
+def test_mean_after_mul():
+    x = Tensor([1.0, 3.0, 5.0], requires_grad=True)
+    y = x * 2.0
+    m = y.mean()
+    assert m.data == (1.0 + 3.0 + 5.0) * 2.0 / 3.0
+
+    m.backward()
+    # dy/dx = 2.0, dm/dy = 1/3 -> dx = 2.0 * 1/3 = 2/3 for each element
+    assert np.allclose(x.grad, [2/3, 2/3, 2/3])
+
+def test_mean_axis_explicit_grad():
+    x = Tensor([[1.0, 2.0], [3.0, 4.0]], requires_grad=True)
+    m = x.mean(axis=0)  # shape (2,)
+    assert np.allclose(m.data, np.array([2.0, 3.0]))
+
+    upstream = np.array([1.0, 2.0])  # explicit grad for non-scalar output
+    m.backward(grad=upstream)
+    # For each column j: dm_j/dx_ij = 1/2 (since two rows)
+    # so dL/dx_ij = upstream_j * 1/2
+    expected = np.array([[0.5, 1.0], [0.5, 1.0]])
+    assert np.allclose(x.grad, expected)
+
 def test_indexing():
     x = Tensor([10, 20, 30])
     assert x[0].data == 10

@@ -1,7 +1,7 @@
 import numpy as np
 
 class Tensor:
-    def __init__(self, data, requires_grad=False):
+    def __init__(self, data, requires_grad=False, _prev=set()):
         self.data = np.array(data)
         self.dtype = self.data.dtype
         self.shape = self.data.shape
@@ -9,7 +9,7 @@ class Tensor:
         self.size = self.data.size
         self.device = 'cpu'
         self.requires_grad = requires_grad
-        self._prev = set()
+        self._prev = _prev
         self._backward = lambda: None
         
         if self.requires_grad:
@@ -21,21 +21,26 @@ class Tensor:
     def __add__(self, other):
         if isinstance(other, Tensor):
             out = Tensor(self.data + other.data, requires_grad=self.requires_grad or other.requires_grad)
+            out._ensure_grad()
 
             def _backward():
                 if self.requires_grad:
-                    self.grad += out.grad # ∂(x+y)/∂x = 1
+                    self._ensure_grad()
+                    self.grad += self._unbroadcast(out.grad , self.data.shape) # ∂(x+y)/∂x = 1
                 if other.requires_grad:
-                    other.grad += out.grad # ∂(x+y)/∂y = 1
+                    other._ensure_grad()
+                    other.grad += self._unbroadcast(out.grad , other.data.shape) # ∂(x+y)/∂y = 1
             out._backward = _backward
             out._prev = {self, other}
 
         else:
             out = Tensor(self.data + other, requires_grad=self.requires_grad)
+            out._ensure_grad()
 
             def _backward():
                 if self.requires_grad:
-                    self.grad += out.grad # ∂(x+c)/∂x = 1
+                    self._ensure_grad()
+                    self.grad += self._unbroadcast(out.grad , self.data.shape) # ∂(x+c)/∂x = 1
 
             out._backward = _backward
             out._prev = {self}
@@ -44,20 +49,26 @@ class Tensor:
     def __sub__(self, other):
         if isinstance(other, Tensor):
             out = Tensor(self.data - other.data, requires_grad=self.requires_grad or other.requires_grad)
-            
+            out._ensure_grad()
+
             def _backward():
                 if self.requires_grad:
-                    self.grad += out.grad  # ∂(x-y)/∂x = 1
+                    self._ensure_grad()
+                    self.grad += self._unbroadcast(out.grad , self.data.shape)  # ∂(x-y)/∂x = 1
                 if other.requires_grad:
-                    other.grad += out.grad * -1  # ∂(x-y)/∂y = -1
+                    other._ensure_grad()
+                    other.grad += self._unbroadcast(out.grad * -1 , other.data.shape)  # ∂(x-y)/∂y = -1
 
             out._backward = _backward
             out._prev = {self, other}
         else:
             out = Tensor(self.data - other, requires_grad=self.requires_grad)
+            out._ensure_grad()
+
             def _backward():
                 if self.requires_grad:
-                    self.grad += out.grad # ∂(x-y)/∂x = 1
+                    self._ensure_grad()
+                    self.grad += self._unbroadcast(out.grad , self.data.shape)  # ∂(x-y)/∂x = 1
  
             out._backward = _backward
             out._prev = {self}
@@ -69,17 +80,20 @@ class Tensor:
             
             def _backward():
                 if self.requires_grad:
-                    self.grad = (self.grad or 0) + out.grad * other.data  # ∂(x*y)/∂x = y
+                    self._ensure_grad()
+                    self.grad = self.grad + self._unbroadcast(out.grad * other.data, self.data.shape)  # ∂(x*y)/∂x = y
                 if other.requires_grad:
-                    other.grad = (other.grad or 0) + out.grad * self.data  # ∂(x*y)/∂y = x
-            
+                    other._ensure_grad()
+                    other.grad = other.grad + self._unbroadcast(out.grad * self.data, other.data.shape)  # ∂(x*y)/∂y = x
+
             out._backward = _backward
             out._prev = {self, other}
         else:
             out = Tensor(self.data * other, requires_grad=self.requires_grad)
             def _backward():
                 if self.requires_grad:
-                    self.grad += out.grad * other  # ∂(x*c)/∂x = c
+                    self._ensure_grad()
+                    self.grad += self._unbroadcast(out.grad * other, self.data.shape)  # ∂(x*c)/∂x = c
 
             out._backward = _backward
             out._prev = {self}
@@ -93,9 +107,11 @@ class Tensor:
             
             def _backward():
                 if self.requires_grad:
-                    self.grad += out.grad * (1 / other.data)  # ∂(x/y)/∂x = 1/y
+                    self._ensure_grad()
+                    self.grad += self._unbroadcast(out.grad * (1 / other.data), self.data.shape)  # ∂(x/y)/∂x = 1/y
                 if other.requires_grad:
-                    other.grad += out.grad * -self.data / (other.data ** 2)  # ∂(x/y)/∂y = -x/(y^2)
+                    other._ensure_grad()
+                    other.grad += self._unbroadcast(out.grad * (-self.data / (other.data ** 2)), other.data.shape)  # ∂(x/y)/∂y = -x/(y^2)
 
             out._backward = _backward
             out._prev = {self, other}
@@ -106,24 +122,32 @@ class Tensor:
 
             def _backward():
                 if self.requires_grad:
-                    self.grad += out.grad * (1 / other) # ∂(x/c)/∂x = 1/c
+                    self._ensure_grad()
+                    self.grad += self._unbroadcast(out.grad * (1 / other), self.data.shape)  # ∂(x/c)/∂x = 1/c
+            
             out._backward = _backward
             out._prev = {self}
         return out
         
-    def mean(self):
-        out = Tensor(self.data.mean(), requires_grad=self.requires_grad)
+    def mean(self, axis=None):  # TODO: add keepdims
+        out = Tensor(self.data.mean(axis=axis), requires_grad=self.requires_grad)
         if self.requires_grad:
             def _backward():
-                self.grad += out.grad * (1 / self.size)  # ∂(mean(x))/∂x = 1/N
+                self._ensure_grad()
+                grad = out.grad
+
+                if axis is not None:
+                    grad = np.expand_dims(grad, axis=axis)
+                    grad = np.broadcast_to(grad, self.shape)
+
+                self.grad += grad / np.prod(self.data.shape if axis is None else np.array(self.data.shape)[axis])
             out._backward = _backward
             out._prev = {self}
-
         return out
         
     #indexing
     def __getitem__(self, idx):
-        return Tensor(self.data[idx])
+        return Tensor(self.data[idx], requires_grad=self.requires_grad, _prev=self._prev)
     
     def __setitem__(self, idx, value):
         if isinstance(value, Tensor):
@@ -135,6 +159,8 @@ class Tensor:
     def zero_grad(self):
         if self.requires_grad:
             self.grad = np.zeros_like(self.data)
+        else:
+            self.grad = None
 
     def backward(self, grad=None):
         if not self.requires_grad:
@@ -145,6 +171,7 @@ class Tensor:
                 raise ValueError("Gradients can only be implicitly created for scalar outputs.")
             grad = np.ones_like(self.data)
         
+        self._ensure_grad()
         self.grad += grad
 
         topo = []
@@ -161,3 +188,27 @@ class Tensor:
 
         for t in reversed(topo):
             t._backward()
+
+    @staticmethod
+    def _unbroadcast(grad, target_shape):
+        """
+        Reduces grad to match target_shape by summing over broadcasted axes.
+        Works for scalars, tensors with dimensions of 1, and multi-dimensional broadcast.
+        """
+        grad_shape = grad.shape
+        target_ndim = len(target_shape)
+        grad_ndim = len(grad_shape)
+
+        while grad_ndim > target_ndim:
+            grad = grad.sum(axis=0)
+            grad_ndim -= 1
+
+        for i, dim in enumerate(target_shape):
+            if dim == 1:
+                grad = grad.sum(axis=i, keepdims=True)
+
+        return grad
+    
+    def _ensure_grad(self):
+        if self.grad is None and self.requires_grad:
+            self.grad = np.zeros_like(self.data)
