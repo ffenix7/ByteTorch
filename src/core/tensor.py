@@ -1,7 +1,7 @@
 import numpy as np
 
 class Tensor:
-    def __init__(self,data, requires_grad=False):
+    def __init__(self, data, requires_grad=False):
         self.data = np.array(data)
         self.dtype = self.data.dtype
         self.shape = self.data.shape
@@ -159,6 +159,5 @@ class Tensor:
 
         build_topo(self)
 
-        # backward pass
         for t in reversed(topo):
             t._backward()
