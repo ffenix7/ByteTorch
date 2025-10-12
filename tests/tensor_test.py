@@ -103,5 +103,13 @@ def test_complex_graph():
     assert pytest.approx(x.grad) == 4/3
     assert pytest.approx(y.grad) == -13/9
 
+def test_unbroadcast_complex_case():
+    grad = np.ones((2, 4, 3))
+    result = Tensor._unbroadcast(grad, (1, 1, 3))
+    expected_shape = (1, 1, 3)
+    expected_value = 2 * 4  # sum over axis 0 (2) and axis 1 (4) = 8
+    assert result.shape == expected_shape
+    assert np.allclose(result, np.full(expected_shape, expected_value))
+
 if __name__ == "__main__":
     pytest.main()
