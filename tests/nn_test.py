@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from src.core.tensor import Tensor
 from src.nn.linear import Linear
-from src.nn.activation.relu import ReLU
+from src.activation.relu import ReLU
 
 def test_linear_forward():
     """Test forward pass with bias."""
