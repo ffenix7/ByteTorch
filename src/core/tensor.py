@@ -17,6 +17,10 @@ class Tensor:
         else:
             self.grad = None
 
+    def randn(shape, requires_grad=False):
+        data = np.random.randn(*shape)
+        return Tensor(data, requires_grad=requires_grad)
+
     #mathematical operations
     def __add__(self, other):
         if isinstance(other, Tensor):
@@ -128,6 +132,23 @@ class Tensor:
             out._backward = _backward
             out._prev = {self}
         return out
+    
+    def __matmul__(self, other):
+        if not isinstance(other, Tensor):
+            raise ValueError("Matrix multiplication requires another Tensor.")
+        out = Tensor(self.data @ other.data, requires_grad=self.requires_grad or other.requires_grad)
+
+        def _backward():
+            if self.requires_grad:
+                self._ensure_grad()
+                self.grad += out.grad.dot(other.data.T)  # ∂(x·y)/∂x = y^T
+            if other.requires_grad:
+                other._ensure_grad()
+                other.grad += self.data.T.dot(out.grad)  # ∂(x·y)/∂y = x^T
+
+        out._backward = _backward
+        out._prev = {self, other}
+        return out
         
     def mean(self, axis=None):  # TODO: add keepdims
         out = Tensor(self.data.mean(axis=axis), requires_grad=self.requires_grad)
@@ -172,7 +193,7 @@ class Tensor:
                     grad = np.expand_dims(grad, axis=axis)
                     grad = np.broadcast_to(grad, self.shape)
 
-                self.grad += grad / np.prod(self.data.shape if axis is None else np.array(self.data.shape)[axis])
+                self.grad += grad  # ∂(sum(x))/∂x = 1
             out._backward = _backward
             out._prev = {self}
         return out
