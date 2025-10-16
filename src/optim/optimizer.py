@@ -1,0 +1,15 @@
+
+class Optimizer():
+    def __init__(self, params, lr):
+        self.params = params
+        self.lr = lr
+
+    def step(self):
+        for param in self.params:
+            param.data -= param.grad * self.lr
+
+    def zero_grad(self):
+        for param in self.params:
+            if param.requires_grad:
+                param.zero_grad()
+
