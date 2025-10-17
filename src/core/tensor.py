@@ -17,8 +17,26 @@ class Tensor:
         else:
             self.grad = None
 
+    @staticmethod
     def randn(shape, requires_grad=False):
+        """Generates a tensor with random values from a normal distribution."""
         data = np.random.randn(*shape)
+        return Tensor(data, requires_grad=requires_grad)
+    
+    @staticmethod
+    def rand(shape, requires_grad=False):
+        """Generates a tensor with random values from a uniform distribution [0, 1)."""
+        data = np.random.rand(*shape)
+        return Tensor(data, requires_grad=requires_grad)
+
+    @staticmethod
+    def ones(shape, requires_grad=False):
+        data = np.ones(shape)
+        return Tensor(data, requires_grad=requires_grad)
+
+    @staticmethod
+    def zeros(shape, requires_grad=False):
+        data = np.zeros(shape)
         return Tensor(data, requires_grad=requires_grad)
 
     #mathematical operations
@@ -50,6 +68,9 @@ class Tensor:
             out._prev = {self}
         return out
     
+    def __radd__(self, other):
+        return self.__add__(other)
+    
     def __sub__(self, other):
         if isinstance(other, Tensor):
             out = Tensor(self.data - other.data, requires_grad=self.requires_grad or other.requires_grad)
@@ -73,11 +94,14 @@ class Tensor:
                 if self.requires_grad:
                     self._ensure_grad()
                     self.grad += self._unbroadcast(out.grad , self.data.shape)  # ∂(x-y)/∂x = 1
- 
+
             out._backward = _backward
             out._prev = {self}
         return out
-        
+
+    def _rsub__(self, other):
+        return -self.__sub__(other)
+    
     def __mul__(self, other):
         if isinstance(other, Tensor):
             out = Tensor(self.data * other.data, requires_grad=self.requires_grad or other.requires_grad)
@@ -102,7 +126,10 @@ class Tensor:
             out._backward = _backward
             out._prev = {self}
         return out
-        
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
     def __truediv__(self, other):
         if isinstance(other, Tensor):
             if np.any(other.data == 0):
@@ -133,6 +160,18 @@ class Tensor:
             out._prev = {self}
         return out
     
+    def __rtruediv__(self, other):
+        if other == 0:
+            raise ZeroDivisionError("Division by zero is not allowed!")
+        out = Tensor(other / self.data, requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                self.grad += self._unbroadcast(out.grad * (-other / (self.data ** 2)), self.data.shape)  # ∂(c/x)/∂x = -c/(x^2)
+            out._backward = _backward
+            out._prev = {self}
+        return out
+
     def __matmul__(self, other):
         if not isinstance(other, Tensor):
             raise ValueError("Matrix multiplication requires another Tensor.")
@@ -149,6 +188,16 @@ class Tensor:
         out._backward = _backward
         out._prev = {self, other}
         return out
+
+    def sqrt(self):
+        out = Tensor(np.sqrt(self.data), requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                self.grad += out.grad * (0.5 / out.data)  # ∂(sqrt(x))/∂x = 1/(2*sqrt(x))
+            out._backward = _backward
+            out._prev = {self}
+        return out
         
     def mean(self, axis=None):  # TODO: add keepdims
         out = Tensor(self.data.mean(axis=axis), requires_grad=self.requires_grad)
@@ -162,6 +211,24 @@ class Tensor:
                     grad = np.broadcast_to(grad, self.shape)
 
                 self.grad += grad / np.prod(self.data.shape if axis is None else np.array(self.data.shape)[axis])
+            out._backward = _backward
+            out._prev = {self}
+        return out
+    
+    def var(self, axis=None):  # TODO: add keepdims
+        out = Tensor(self.data.var(axis=axis), requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                grad = out.grad
+
+                if axis is not None:
+                    grad = np.expand_dims(grad, axis=axis)
+                    grad = np.broadcast_to(grad, self.shape)
+
+                n = np.prod(self.data.shape if axis is None else np.array(self.data.shape)[axis])
+                mean = self.data.mean(axis=axis, keepdims=True)
+                self.grad += grad * 2 * (self.data - mean) / n # ∂(var(x))/∂x = 2*(x - mean)/n
             out._backward = _backward
             out._prev = {self}
         return out
