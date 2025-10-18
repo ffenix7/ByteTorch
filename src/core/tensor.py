@@ -40,6 +40,17 @@ class Tensor:
         return Tensor(data, requires_grad=requires_grad)
 
     #mathematical operations
+
+    def __neg__(self):
+        out = Tensor(-self.data, requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                self.grad += -out.grad  # ∂(-x)/∂x = -1
+            out._backward = _backward
+            out._prev = {self}
+        return out
+
     def __add__(self, other):
         if isinstance(other, Tensor):
             out = Tensor(self.data + other.data, requires_grad=self.requires_grad or other.requires_grad)
@@ -99,7 +110,7 @@ class Tensor:
             out._prev = {self}
         return out
 
-    def _rsub__(self, other):
+    def __rsub__(self, other):
         return -self.__sub__(other)
     
     def __mul__(self, other):
@@ -218,6 +229,26 @@ class Tensor:
             def _backward():
                 self._ensure_grad()
                 self.grad += out.grad * (0.5 / out.data)  # ∂(sqrt(x))/∂x = 1/(2*sqrt(x))
+            out._backward = _backward
+            out._prev = {self}
+        return out
+    
+    def exp(self):
+        out = Tensor(np.exp(self.data), requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                self.grad += out.grad * out.data  # ∂(exp(x))/∂x = exp(x)
+            out._backward = _backward
+            out._prev = {self}
+        return out
+    
+    def log(self):
+        out = Tensor(np.log(self.data), requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                self.grad += out.grad * (1 / self.data)  # ∂(log(x))/∂x = 1/x
             out._backward = _backward
             out._prev = {self}
         return out
