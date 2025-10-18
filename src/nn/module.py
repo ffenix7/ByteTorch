@@ -1,11 +1,11 @@
 class Module:
     def __init__(self):
-        self.parameters = []  
+        self.params = []  
         self.training = True  
 
     def zero_grad(self):
-        for param in self.parameters:
-            if param.requiers_grad:
+        for param in self.params:
+            if param.requires_grad:
                 param.zero_grad()
 
     def forward(self, input):
@@ -19,3 +19,6 @@ class Module:
 
     def __call__(self, *args, **kwargs):
         return self.forward(*args, **kwargs)
+    
+    def parameters(self):
+        return self.params

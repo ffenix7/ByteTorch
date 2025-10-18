@@ -22,3 +22,4 @@ class Adam(Optimizer):
                     v_corr = self.v[i] / (1 - self.betas[1] ** self.t)
 
                     param.data -= self.lr * m_corr / (v_corr.sqrt() + self.eps)
+        self.zero_grad()

@@ -12,10 +12,10 @@ class Linear(Module):
             self.bias = Tensor.randn((out_features,), requires_grad=True)
         else:
             self.bias = None
-        self.parameters = [self.weights]
+        self.params = [self.weights]
         
         if self.bias is not None:
-            self.parameters.append(self.bias)
+            self.params.append(self.bias)
 
     def forward(self, input):
         if input.shape[-1] != self.in_features:

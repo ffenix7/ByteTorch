@@ -1,6 +1,7 @@
+from src.core.tensor import Tensor
 
 class Optimizer():
-    def __init__(self, params, lr):
+    def __init__(self, params: list[Tensor], lr: float):
         self.params = params
         self.lr = lr
 

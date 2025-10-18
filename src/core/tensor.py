@@ -188,6 +188,29 @@ class Tensor:
         out._backward = _backward
         out._prev = {self, other}
         return out
+    
+    def __pow__(self, power):
+        if isinstance(power, (int, float, np.integer, np.floating)):
+            out = Tensor(self.data ** power, requires_grad=self.requires_grad)
+            if self.requires_grad:
+                def _backward():
+                    self._ensure_grad()
+                    self.grad += out.grad * (power * (self.data ** (power - 1)))  # ∂(x^p)/∂x = p*x^(p-1)
+                out._backward = _backward
+                out._prev = {self}
+            return out
+        else:
+            raise NotImplementedError("Power only supports int or float as exponent.")
+    
+    def __rpow__(self, base):
+        out = Tensor(base ** self.data, requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                self.grad += out.grad * (np.log(base) * (base ** self.data))  # ∂(b^x)/∂x = ln(b)*b^x
+            out._backward = _backward
+            out._prev = {self}
+        return out
 
     def sqrt(self):
         out = Tensor(np.sqrt(self.data), requires_grad=self.requires_grad)
