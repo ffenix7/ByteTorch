@@ -1,50 +1,44 @@
 
+
 # ByteTorch
 
-ByteTorch is a minimalistic deep learning framework, built from scratch in Python and inspired by PyTorch. It features a custom autograd engine, intuitive API, and a focus on clarity and educational value. The project demonstrates how core neural network concepts can be implemented in a concise and transparent way—without sacrificing flexibility.
+ByteTorch is a small deep learning library written in Python, inspired by PyTorch. It's a personal project for learning and experimenting with neural networks from the inside. The code is simple and open—feel free to read, use, or break things as you like.
 
-## Key Features
-- **Custom autograd engine** – Understand and extend automatic differentiation from the inside out.
-- **Simple, readable codebase** – Designed for learning, tinkering, and rapid prototyping.
-- **Core neural network layers** – Linear, activation functions, dropout, batch normalization, and more.
-- **Optimizers** – SGD, Adam, and easy extensibility.
-- **Jupyter notebook demos** – See ByteTorch in action on regression and classification tasks.
+## What you'll find here
+- Custom autograd engine - a minimal implementation of automatic differentiation and backpropagation
+- Clear and well-organized code - designed to be easy to read and modify
+- Essential neural network layers - including Linear, activation functions, Dropout, and BatchNorm
+- Optimizers - SGD, Adam, and a straightforward way to add your own
+- Example Jupyter notebooks - practical demonstrations for regression and classification
 
 ## Why ByteTorch?
-ByteTorch is more than just a technical exercise—it's a showcase of practical engineering, curiosity, and a drive to deeply understand how modern ML frameworks work under the hood. The project is ideal for anyone who wants to:
-- Explore the mechanics of deep learning from first principles
-- See how autograd and neural network layers are built
-- Use a lightweight, hackable alternative to big frameworks for small projects or teaching
+ByteTorch is designed for those who want to better understand the inner workings of deep learning frameworks. It can serve as a learning resource, a base for experimenting with custom layers or optimizers, or a lightweight tool for small projects and educational purposes.
 
-## Example: Linear Regression in ByteTorch
-```python
-from src.core.tensor import Tensor
-from src.nn.linear import Linear
-from src.optim.optimizers.SGD import SGD
 
-# Generate synthetic data
-import numpy as np
-X = np.random.randn(100, 1)
-y = 3 * X + 2 + 0.1 * np.random.randn(100, 1)
-X_tensor = Tensor(X, requires_grad=False)
-y_tensor = Tensor(y, requires_grad=False)
+## Getting Started
 
-# Define model and optimizer
-model = Linear(1, 1)
-optimizer = SGD(model.parameters(), lr=0.1)
+1. Clone the repository:
+    ```bash
+    git clone https://github.com/ffenix7/ByteTorch.git
+    cd ByteTorch
+    ```
 
-# Training loop
-for epoch in range(100):
-	preds = model(X_tensor)
-	loss = ((preds - y_tensor) ** 2).mean()
-	model.zero_grad()
-	loss.backward()
-	optimizer.step()
-```
+2. Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-## Notebooks
+3. Try out the example notebooks:
+    - `notebooks/linear_regression.ipynb`
+    - `notebooks/classification_example.ipynb`
+
+You can open the notebooks in Jupyter or VS Code and run all cells to see ByteTorch in action.
+
+
+## Example notebooks
 - [Linear Regression Example](notebooks/linear_regression.ipynb)
 - [Classification Example](notebooks/classification_example.ipynb)
 
+
 ---
-ByteTorch is a living project—open to ideas, improvements, and new challenges. Dive in, explore the code, and see what you can build!
+This project is always changing. If you find a bug or want to add something, go ahead. Have fun!
