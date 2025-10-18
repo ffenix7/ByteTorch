@@ -198,40 +198,6 @@ class Tensor:
             out._backward = _backward
             out._prev = {self}
         return out
-        
-    def mean(self, axis=None):  # TODO: add keepdims
-        out = Tensor(self.data.mean(axis=axis), requires_grad=self.requires_grad)
-        if self.requires_grad:
-            def _backward():
-                self._ensure_grad()
-                grad = out.grad
-
-                if axis is not None:
-                    grad = np.expand_dims(grad, axis=axis)
-                    grad = np.broadcast_to(grad, self.shape)
-
-                self.grad += grad / np.prod(self.data.shape if axis is None else np.array(self.data.shape)[axis])
-            out._backward = _backward
-            out._prev = {self}
-        return out
-    
-    def var(self, axis=None):  # TODO: add keepdims
-        out = Tensor(self.data.var(axis=axis), requires_grad=self.requires_grad)
-        if self.requires_grad:
-            def _backward():
-                self._ensure_grad()
-                grad = out.grad
-
-                if axis is not None:
-                    grad = np.expand_dims(grad, axis=axis)
-                    grad = np.broadcast_to(grad, self.shape)
-
-                n = np.prod(self.data.shape if axis is None else np.array(self.data.shape)[axis])
-                mean = self.data.mean(axis=axis, keepdims=True)
-                self.grad += grad * 2 * (self.data - mean) / n # ∂(var(x))/∂x = 2*(x - mean)/n
-            out._backward = _backward
-            out._prev = {self}
-        return out
     
     def transpose(self, axes=None):
         out = Tensor(self.data.transpose(axes), requires_grad=self.requires_grad)
@@ -249,14 +215,54 @@ class Tensor:
     
     #reduction
 
-    def sum(self, axis=None):
-        out = Tensor(self.data.sum(axis=axis), requires_grad=self.requires_grad)
+    def mean(self, axis=None, keepdims=False):
+        out = Tensor(self.data.mean(axis=axis, keepdims=keepdims), requires_grad=self.requires_grad)
         if self.requires_grad:
             def _backward():
                 self._ensure_grad()
                 grad = out.grad
 
-                if axis is not None:
+                if axis is not None and not keepdims:
+                    grad = np.expand_dims(grad, axis=axis)
+                    grad = np.broadcast_to(grad, self.shape)
+
+                self.grad += grad / np.prod(self.data.shape if axis is None else np.array(self.data.shape)[axis])
+            out._backward = _backward
+            out._prev = {self}
+        return out
+
+    def var(self, axis=None, keepdims=False): 
+        out = Tensor(self.data.var(axis=axis, keepdims=keepdims), requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                grad = out.grad
+
+                if axis is not None and not keepdims:
+                    grad = np.expand_dims(grad, axis=axis)
+                    grad = np.broadcast_to(grad, self.shape)
+
+                if axis is None:
+                    n = self.data.size
+                elif isinstance(axis, int):
+                    n = self.data.shape[axis]
+                else:
+                    n = np.prod([self.data.shape[a] for a in axis])
+
+                mean = self.data.mean(axis=axis, keepdims=True)
+                self.grad += grad * 2 * (self.data - mean) / n # ∂(var(x))/∂x = 2*(x - mean)/n
+            out._backward = _backward
+            out._prev = {self}
+        return out
+
+    def sum(self, axis=None, keepdims=False):
+        out = Tensor(self.data.sum(axis=axis, keepdims=keepdims), requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                grad = out.grad
+
+                if axis is not None and not keepdims:
                     grad = np.expand_dims(grad, axis=axis)
                     grad = np.broadcast_to(grad, self.shape)
 
@@ -264,15 +270,15 @@ class Tensor:
             out._backward = _backward
             out._prev = {self}
         return out
-    
-    def max(self, axis=None):
-        out = Tensor(self.data.max(axis=axis), requires_grad=self.requires_grad)
+
+    def max(self, axis=None, keepdims=False):
+        out = Tensor(self.data.max(axis=axis, keepdims=keepdims), requires_grad=self.requires_grad)
         if self.requires_grad:
             def _backward():
                 self._ensure_grad()
                 grad = out.grad
 
-                if axis is not None:
+                if axis is not None and not keepdims:
                     grad = np.expand_dims(grad, axis=axis)
                     grad = np.broadcast_to(grad, self.shape)
 
@@ -280,15 +286,15 @@ class Tensor:
             out._backward = _backward
             out._prev = {self}
         return out
-    
-    def min(self, axis=None):
-        out = Tensor(self.data.min(axis=axis), requires_grad=self.requires_grad)
+
+    def min(self, axis=None, keepdims=False):
+        out = Tensor(self.data.min(axis=axis, keepdims=keepdims), requires_grad=self.requires_grad)
         if self.requires_grad:
             def _backward():
                 self._ensure_grad()
                 grad = out.grad
 
-                if axis is not None:
+                if axis is not None and not keepdims:
                     grad = np.expand_dims(grad, axis=axis)
                     grad = np.broadcast_to(grad, self.shape)
 

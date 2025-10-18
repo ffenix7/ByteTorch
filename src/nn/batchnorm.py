@@ -31,5 +31,5 @@ class BatchNorm(Module):
         else:
             x_normalized = (x - self.running_mean) / (self.running_var + self.eps).sqrt()
         
-        out = Tensor(self.gamma, requires_grad=self.gamma.requires_grad) * x_normalized + Tensor(self.beta, requires_grad=self.beta.requires_grad)
+        out = self.gamma * x_normalized + self.beta
         return out
