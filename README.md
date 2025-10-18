@@ -2,7 +2,7 @@
 
 # ByteTorch
 
-ByteTorch is a small deep learning library written in Python, inspired by PyTorch. It's a personal project for learning and experimenting with neural networks from the inside. The code is simple and open—feel free to read, use, or break things as you like.
+ByteTorch is a small deep learning library written in Python, inspired by PyTorch. It's a personal project for learning and experimenting with neural networks from the inside. The code is simple and open - feel free to read, use, or break things as you like.
 
 ## What you'll find here
 - Custom autograd engine - a minimal implementation of automatic differentiation and backpropagation
