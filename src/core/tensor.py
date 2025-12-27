@@ -1,9 +1,11 @@
 import numpy as np
+from typing import Optional
+from src.core.datatype import Datatype, FLOAT32
 
 class Tensor:
-    def __init__(self, data, requires_grad=False, _prev=set()):
+    def __init__(self, data, requires_grad=False, _prev=set(), dtype = Optional[Datatype]):
         self.data = np.array(data)
-        self.dtype = self.data.dtype
+        self.dtype = self.data.dtype if dtype is None else dtype
         self.shape = self.data.shape
         self.ndim = self.data.ndim
         self.size = self.data.size
@@ -18,26 +20,26 @@ class Tensor:
             self.grad = None
 
     @staticmethod
-    def randn(shape, requires_grad=False):
+    def randn(shape, requires_grad=False, dtype = FLOAT32):
         """Generates a tensor with random values from a normal distribution."""
         data = np.random.randn(*shape)
-        return Tensor(data, requires_grad=requires_grad)
+        return Tensor(data, requires_grad=requires_grad, dtype=dtype)
     
     @staticmethod
-    def rand(shape, requires_grad=False):
+    def rand(shape, requires_grad=False, dtype = FLOAT32):
         """Generates a tensor with random values from a uniform distribution [0, 1)."""
         data = np.random.rand(*shape)
-        return Tensor(data, requires_grad=requires_grad)
+        return Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
     @staticmethod
-    def ones(shape, requires_grad=False):
+    def ones(shape, requires_grad=False, dtype = FLOAT32):
         data = np.ones(shape)
-        return Tensor(data, requires_grad=requires_grad)
+        return Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
     @staticmethod
-    def zeros(shape, requires_grad=False):
+    def zeros(shape, requires_grad=False, dtype = FLOAT32):
         data = np.zeros(shape)
-        return Tensor(data, requires_grad=requires_grad)
+        return Tensor(data, requires_grad=requires_grad, dtype=dtype)
 
     #mathematical operations
 
@@ -357,6 +359,32 @@ class Tensor:
             out._prev = {self}
         return out
     
+    #Shape manipulation
+
+    def reshape(self, size):
+        out = Tensor(self.data, requires_grad=True, _prev={self})
+        out.data = out.data.reshape(size)
+
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                self.grad += out.grad.reshape(self.shape)  # ∂(reshape(x))/∂x = reshape(1)
+            out._backward = _backward 
+        return out
+
+    def flatten(self, start_dim = 0, end_dim = -1): #?: check
+        out = Tensor(self.data, requires_grad=True, _prev={self}) 
+
+        for i in range(start_dim, end_dim + 1):
+            if i < 0:
+                i += self.ndim
+            
+            new_shape = list(out.data.shape)
+            new_shape[start_dim] = np.prod(new_shape[start_dim:end_dim + 1])
+            
+            del new_shape[start_dim + 1:end_dim + 1]
+            out.data = out.data.reshape(new_shape)
+
 
     #indexing
     def __getitem__(self, idx):
