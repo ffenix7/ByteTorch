@@ -54,4 +54,14 @@ class L1Loss(Loss):
         return self.loss
     
     def backward(self):
-        raise(NotImplementedError("Not yet implemented!")) #TODO: write backward
+        grad_input = None
+        if self.reduction is None:
+            grad_input = (self.input - self.target).sign()
+        elif self.reduction == 'mean':
+            batch_size = self.input.shape[0]
+            grad_input = (self.input - self.target).sign() / batch_size
+        elif self.reduction == 'sum':
+            grad_input = (self.input - self.target).sign()
+        else:
+            raise(ValueError("Invalid reduction type! Valid types are 'None', 'mean', 'sum'."))
+        return grad_input
