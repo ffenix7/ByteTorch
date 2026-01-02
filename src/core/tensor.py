@@ -255,6 +255,16 @@ class Tensor:
             out._prev = {self}
         return out
     
+    def abs(self):
+        out = Tensor(np.abs(self.data), requires_grad = self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                self.grad += out.grad * (self.data / (out.data + 1e-8)) # ∂(abs(x))/∂x = sign(x)
+            out._backward = _backward
+            out._prev = {self}
+        return out
+    
     def transpose(self, axes=None):
         out = Tensor(self.data.transpose(axes), requires_grad=self.requires_grad)
         if self.requires_grad:
