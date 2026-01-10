@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from ..core.tensor import Tensor
+import numpy as np
+
 class Loss(ABC):
     def __init__(self):
         self.input = None
@@ -34,13 +36,13 @@ class MSELoss(Loss):
         return grad_input
     
 class L1Loss(Loss):
-    def __init__(self):
+    def __init__(self, reduction = 'mean'):
         super().__init__()
+        self.reduction = reduction
     
-    def forward(self, input, target, reduction = 'mean'):
+    def forward(self, input, target):
         self.input = input 
         self.target = target
-        self.reduction = reduction
 
         diff = (input - target).abs()
         if self.reduction is None:
@@ -65,3 +67,33 @@ class L1Loss(Loss):
         else:
             raise(ValueError("Invalid reduction type! Valid types are 'None', 'mean', 'sum'."))
         return grad_input
+    
+class CrossEntropyLoss(Loss):
+    def __init__(self, weight = None, reduction = 'mean', label_smoothing = 0.0):
+        super().__init__()
+        if weight is None:
+            self.weight = 1
+        else:
+            self.weight = weight
+        if label_smoothing < 0.0 or label_smoothing > 1.0 or not isinstance(label_smoothing, float):
+            self.label_smoothing = 0.0
+            raise ValueError("Label smoothing must be in the range [0.0, 1.0]")
+        else:
+            self.label_smoothing = label_smoothing
+        self.reduction = reduction
+
+    def forward(self, input, target):
+        if input.ndim != 2:
+            raise ValueError("CrossEntropyLoss currently supports only 2D input (N, C).")
+        
+        log_probs = input.log_softmax(axis=1)
+        n_classes = input.shape[1]
+        smooth_target = (1 - self.label_smoothing) * target + self.label_smoothing / n_classes
+        self.loss = - (smooth_target * log_probs).sum(axis=1)
+
+        if self.reduction == 'mean':
+            self.loss = self.loss.mean()
+        elif self.reduction == 'sum':
+            self.loss = self.loss.sum()
+        
+        return self.loss

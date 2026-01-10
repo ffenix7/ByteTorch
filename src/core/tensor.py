@@ -289,6 +289,20 @@ class Tensor:
             out._prev = {self}
         return out
     
+    def log_softmax(self, dim=-1):
+        exps = np.exp(self.data - np.max(self.data, axis=dim, keepdims=True))
+        softmax = exps / np.sum(exps, axis=dim, keepdims=True)
+        out = Tensor(np.log(softmax), requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                grad_output = out.grad
+                sum_grad = np.sum(grad_output, axis=dim, keepdims=True)
+                self.grad += grad_output - softmax * sum_grad  # ∂(log_softmax(x))/∂x
+            out._backward = _backward
+            out._prev = {self}
+        return out
+    
     #reduction
 
     def mean(self, axis=None, keepdims=False):
