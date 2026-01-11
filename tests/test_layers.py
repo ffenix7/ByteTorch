@@ -53,12 +53,12 @@ def test_linear_invalid_input_shape():
 def test_linear_parameters():
     """Test parameters list."""
     linear = Linear(in_features=3, out_features=2)
-    assert len(linear.parameters) == 2  # weights and bias
-    assert linear.weights in linear.parameters
-    assert linear.bias in linear.parameters
+    assert len(linear.parameters()) == 2  # weights and bias
+    assert linear.weights in linear.parameters()
+    assert linear.bias in linear.parameters()
     
     linear_no_bias = Linear(in_features=3, out_features=2, bias=False)
-    assert len(linear_no_bias.parameters) == 1  # tylko weights
+    assert len(linear_no_bias.parameters()) == 1  # tylko weights
 
 def test_relu_forward():
     """Test ReLU forward pass."""
