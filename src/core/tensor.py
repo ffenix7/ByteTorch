@@ -1,11 +1,22 @@
 import numpy as np
-from typing import Optional
-from src.core.datatype import Datatype, FLOAT32
+from src.core.datatype import FLOAT32
 
 class Tensor:
-    def __init__(self, data, requires_grad=False, _prev=set(), dtype = Optional[Datatype]):
-        self.data = np.array(data)
-        self.dtype = self.data.dtype if dtype is None else dtype
+    def __init__(self, data, requires_grad=False, _prev=None, dtype=None):
+        if dtype is not None:
+            if not np.issubdtype(dtype, np.number):
+                raise ValueError(f"Wrong dtype: {dtype}")
+            self.data = self.data.astype(dtype)
+            self.dtype = dtype
+        else:
+            if not np.issubdtype(self.data.dtype, np.number):
+                raise ValueError(f"Data has non-numeric dtype: {self.data.dtype}")
+            self.dtype = self.data.dtype
+        
+        if _prev is None:
+            _prev = set()
+        
+        self.data = np.array(data, dtype=self.dtype)
         self.shape = self.data.shape
         self.ndim = self.data.ndim
         self.size = self.data.size
@@ -18,6 +29,13 @@ class Tensor:
             self.grad = np.zeros_like(self.data)
         else:
             self.grad = None
+        
+    def __str__(self):
+        return str(self.data)
+    
+    def __repr__(self):
+        return f"Tensor(shape={self.data.shape}, dtype={self.dtype})"
+
 
     @staticmethod
     def randn(shape, requires_grad=False, dtype = FLOAT32):
