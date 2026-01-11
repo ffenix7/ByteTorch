@@ -3,20 +3,25 @@ from src.core.datatype import FLOAT32
 
 class Tensor:
     def __init__(self, data, requires_grad=False, _prev=None, dtype=None):
-        if dtype is not None:
-            if not np.issubdtype(dtype, np.number):
-                raise ValueError(f"Wrong dtype: {dtype}")
-            self.data = self.data.astype(dtype)
-            self.dtype = dtype
-        else:
-            if not np.issubdtype(self.data.dtype, np.number):
-                raise ValueError(f"Data has non-numeric dtype: {self.data.dtype}")
-            self.dtype = self.data.dtype
+        def _is_numeric_leaf(x):
+            return isinstance(x, (int, float, np.integer, np.floating))
+        
+        def _check_numeric_structure(x):
+            if isinstance(x, (list, tuple, np.ndarray)):
+                for el in x:
+                    _check_numeric_structure(el)
+            elif not _is_numeric_leaf(x):
+                raise TypeError(f"Tensor data must be a list/tuple/array of numbers, got element of type {type(x)}: {x}")
+        
+        _check_numeric_structure(data)
+        if np.array(data).size == 0:
+            raise ValueError("Cannot create an empty Tensor: data must contain at least one element")
         
         if _prev is None:
             _prev = set()
         
-        self.data = np.array(data, dtype=self.dtype)
+        self.data = np.array(data)
+        self.dtype = self.data.dtype
         self.shape = self.data.shape
         self.ndim = self.data.ndim
         self.size = self.data.size
