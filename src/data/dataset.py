@@ -45,8 +45,4 @@ class Dataset:
     def __repr__(self):
         return f"Dataset(num_items={len(self.items)}, path='{self.dataset_path}')"
     
-dataset = Dataset("./src/data/")
-print(dataset[0])
-
 tensor = Tensor([])
-print(tensor)
