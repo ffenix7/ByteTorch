@@ -43,9 +43,9 @@ class Tensor:
 
 
     @staticmethod
-    def randn(shape, requires_grad=False, dtype = FLOAT32):
+    def randn(shape, mean = 0, std = 1, requires_grad=False, dtype = FLOAT32):
         """Generates a tensor with random values from a normal distribution."""
-        data = np.random.randn(*shape)
+        data = np.random.normal(mean, std, *shape)
         return Tensor(data, requires_grad=requires_grad, dtype=dtype)
     
     @staticmethod
@@ -330,6 +330,22 @@ class Tensor:
 
     def mean(self, axis=None, keepdims=False):
         out = Tensor(self.data.mean(axis=axis, keepdims=keepdims), requires_grad=self.requires_grad)
+        if self.requires_grad:
+            def _backward():
+                self._ensure_grad()
+                grad = out.grad
+
+                if axis is not None and not keepdims:
+                    grad = np.expand_dims(grad, axis=axis)
+                    grad = np.broadcast_to(grad, self.shape)
+
+                self.grad += grad / np.prod(self.data.shape if axis is None else np.array(self.data.shape)[axis])
+            out._backward = _backward
+            out._prev = {self}
+        return out
+    
+    def std(self, axis=None, keepdims=False):
+        out = Tensor(self.data.std(axis=axis, keepdims=keepdims), requires_grad=self.requires_grad)
         if self.requires_grad:
             def _backward():
                 self._ensure_grad()

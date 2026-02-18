@@ -1,3 +1,5 @@
+import pickle
+
 class Module:
     def __init__(self):
         self.params = []  
@@ -22,3 +24,14 @@ class Module:
     
     def parameters(self):
         return self.params
+    
+    def save(self, filename):
+        params = [param.data for param in self.params]
+        with open(filename, 'wb') as f:
+            pickle.dump(params, f)
+
+    def load(self, filename):
+        with open(filename, 'rb') as f:
+            params = pickle.load(f)
+        for p, loaded in zip(self.parameters(), params):
+            p.data = loaded
