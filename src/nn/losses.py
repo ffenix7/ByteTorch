@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from ..core.tensor import Tensor
+from src.core.tensor import Tensor
 import numpy as np
 
 class Loss(ABC):

@@ -1,5 +1,5 @@
-from ...core.tensor import Tensor
-from ..optimizer import Optimizer
+from src.core.tensor import Tensor
+from src.optim.optimizer import Optimizer
 
 class SGD(Optimizer):
     def __init__(self, params: list[Tensor], lr=0.01, momentum=0):

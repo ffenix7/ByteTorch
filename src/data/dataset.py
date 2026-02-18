@@ -1,4 +1,4 @@
-from ..core.tensor import Tensor
+from src.core.tensor import Tensor
 import pathlib
 import pandas as pd
 

@@ -1,5 +1,5 @@
-from ..core.tensor import Tensor
-from .module import Module
+from src.core.tensor import Tensor
+from src.nn.module import Module
 
 class BatchNorm(Module):
     def __init__(self, num_features, eps=1e-5, momentum=0.1, gamma=None, beta=None):

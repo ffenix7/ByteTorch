@@ -1,5 +1,5 @@
-from ..core.tensor import Tensor
-from .module import Module
+from src.core.tensor import Tensor
+from src.nn.module import Module
 
 class Dropout(Module):
     def __init__(self, rate=0.5):

@@ -529,3 +529,7 @@ class Tensor:
     def _ensure_grad(self):
         if self.grad is None and self.requires_grad:
             self.grad = np.zeros_like(self.data)
+
+class Parameter(Tensor):
+    def __init__(self, data):
+        super().__init__(data, requires_grad = True)

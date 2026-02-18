@@ -1,4 +1,4 @@
-from ..optimizer import Optimizer
+from src.optim.optimizer import Optimizer
 
 class Adam(Optimizer):
     def __init__(self, params, lr=0.001, betas=(0.9, 0.999), eps=1e-8):
